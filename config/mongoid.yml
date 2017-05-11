@@ -3,11 +3,11 @@ development:
     default:
       database: nauth_test
       hosts:
-        - 10.255.8.148:27017
+        - localhost:27017
 production:
   clients:
     default:
       database: nauth
       hosts:
-        - 10.255.8.148:27017
+        - localhost:27017
 
