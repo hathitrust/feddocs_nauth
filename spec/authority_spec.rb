@@ -11,7 +11,7 @@ RSpec.describe Authority, "#new" do
     rec = open(File.dirname(__FILE__)+"/data/schizo_branch.ndj").read
     @schizo = Authority.new( :record=>rec )
     #@schizo.record = rec
-    @schizo.save
+    @schizo.save!
   end
 
   it "creates three records from 1 authority record" do

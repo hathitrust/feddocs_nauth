@@ -7,5 +7,6 @@ gem 'dotenv'
 gem 'rake'
 gem 'marc'
 gem 'mongoid'
+gem 'coveralls', require: false
 
 gem 'traject', :git => 'https://github.com/traject/traject.git'
