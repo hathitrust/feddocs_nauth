@@ -1,2 +1,3 @@
 language: ruby
 services: mongodb
+script: bundle exec rspec
