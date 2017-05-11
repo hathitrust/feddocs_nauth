@@ -2,4 +2,6 @@ language: ruby
 rvm:
    - 2.2.3
 services: mongodb
+before_script:
+  - sleep 15
 script: bundle exec rspec

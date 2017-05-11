@@ -1,7 +1,5 @@
 require 'nauth'
 require 'dotenv'
-Dotenv.load
-Mongoid.load!("config/mongoid.yml")
 require 'coveralls'
 Coveralls.wear!
 

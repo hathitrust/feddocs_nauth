@@ -2,9 +2,8 @@ require 'pp'
 require 'nauth'
 require 'dotenv'
 Dotenv.load
-Mongoid.load!("config/mongoid.yml")
+Mongoid.load!("config/mongoid.yml", :development)
 Authority = Nauth::Authority
-
 RSpec.describe Authority, "#new" do
 
   before(:all) do
