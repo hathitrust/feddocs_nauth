@@ -36,14 +36,15 @@ module Nauth
         if !extracted['name']
           return nil
         end
-        self.name = extracted['name'].join(' ')
+        self.name = extracted['name'].join(' ').chomp('.')
         self.label = extracted['name'].pop
         self.sameAs = @@loc_uri+extracted['sameAs'][0].gsub(/ /,'')
-        extracted['alternateName'].each do |aname|
-          self.alternateName << aname
+        if extracted['alternateName']
+          extracted['alternateName'].each do |aname|
+            self.alternateName << aname
+          end
+          self.alternateName.uniq!
         end
-        self.alternateName.uniq!
-
         if extracted['name'].count > 0
           self.parentOrganization = extracted['name'].join(' ').chomp('.')
           self.add_to_parent extracted['name'] 
@@ -53,7 +54,7 @@ module Nauth
 
     # recursively add/create parent given a parent name array
     def add_to_parent name
-      parent = Authority.where(name:name.join(' ')).limit(1).first
+      parent = Authority.where(name:name.join(' ').chomp('.')).limit(1).first
       if parent.nil?
         # create an empty record
         parent = Authority.new
