@@ -45,9 +45,30 @@ RSpec.describe Authority, "#new" do
 end
 
 RSpec.describe Authority, "#new" do
+  it "extracts the 'n' subfield in order" do
+    rec = open(File.dirname(__FILE__)+"/data/with_110n.json").read
+    rec = Authority.new( :record=>rec )
+    expect(rec.name).to eq('United States. Congress (97th, 2nd session : 1982). Senate')
+    expect(rec.parentOrganization).to eq('United States. Congress (97th, 2nd session : 1982)')
+    p = Authority.where(name:'United States. Congress (97th, 2nd session : 1982)').first
+    expect(p.label).to eq('Congress (97th, 2nd session : 1982).')
+  end
+
+  after(:all) do
+    Authority.delete_all
+  end
 
 end
 
+RSpec.describe Authority, "#merge_subfields" do
+  before(:all) do
+    rec = open(File.dirname(__FILE__)+"/data/with_110n.json").read
+    @rec = Authority.new( :record=>rec )
+    @rec.save!
+  end
+end
+
+ 
 RSpec.describe Authority, "#pub_count" do
   before(:all) do
     rec = open(File.dirname(__FILE__)+"/data/schizo_branch.ndj").read

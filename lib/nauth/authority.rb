@@ -36,6 +36,7 @@ module Nauth
         if !extracted['name']
           return nil
         end
+        extracted['name'] = extracted['name'][0].gsub(/([^\.])\t/, '\1 ').split("\t")
         self.name = extracted['name'].join(' ').chomp('.')
         self.label = extracted['name'].pop
         self.sameAs = @@loc_uri+extracted['sameAs'][0].gsub(/ /,'')

@@ -27,10 +27,10 @@ settings do
 end
 
 # name
-to_field "name",            extract_marc("110ab", :separator => nil)
+to_field "name", extract_marc("110abnd", :separator => "\t")
 
 # alternateName
-to_field "alternateName",          extract_marc("410ab:510ab")
+to_field "alternateName",          extract_marc("410abnd:510abnd")
 
 # sameAs
 to_field "sameAs", extract_marc("010a")
