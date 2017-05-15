@@ -10,7 +10,7 @@ module Nauth
     field :parentOrganization, type: String
     field :subOrganization, type: Array, default: []
     field :sameAs, type: String
-    field :type, type: String
+    field :type, type: String, default: 'Organization'
     field :label, type: String
     field :alternateName, type: Array, default: []
     field :url, type: String
