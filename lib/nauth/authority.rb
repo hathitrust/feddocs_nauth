@@ -2,6 +2,7 @@ require 'mongoid'
 require 'marc'
 require 'dotenv'
 require 'traject'
+Dotenv.load!
 Mongoid.load!("config/mongoid.yml")
 
 module Nauth
