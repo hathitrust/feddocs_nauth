@@ -2,8 +2,6 @@ require 'mongoid'
 require 'marc'
 require 'dotenv'
 require 'traject'
-Dotenv.load!
-Mongoid.load!("config/mongoid.yml")
 
 module Nauth
   class Authority 
@@ -20,7 +18,6 @@ module Nauth
     field :count, type: Integer, default: 0
 
     validates_uniqueness_of :name
-    Dotenv.load
 
     @@extractor = Traject::Indexer.new
     @@extractor.load_config_file(__dir__+'/../../config/traject_config.rb')
