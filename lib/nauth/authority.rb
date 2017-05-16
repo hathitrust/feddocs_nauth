@@ -2,6 +2,7 @@ require 'mongoid'
 require 'marc'
 require 'dotenv'
 require 'traject'
+Mongoid.load!("config/mongoid.yml")
 
 module Nauth
   class Authority 
