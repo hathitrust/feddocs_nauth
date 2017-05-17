@@ -60,15 +60,32 @@ RSpec.describe Authority, "#new" do
 
 end
 
-RSpec.describe Authority, "#merge_subfields" do
+RSpec.describe Authority, "#search" do
   before(:all) do
-    rec = open(File.dirname(__FILE__)+"/data/with_110n.json").read
-    @rec = Authority.new( :record=>rec )
+    rec = open(File.dirname(__FILE__)+"/data/with_410.json").read
+    @rec = Authority.new(:record=>rec)
     @rec.save!
+  end
+
+  it "finds by name" do
+    name = 'Haut Commissariat à la recherche de la République centrafricaine'
+    auth = Authority.search name
+    PP.pp auth
+    expect(auth.sameAs).to eq('https://lccn.loc.gov/n90645849')
+  end
+
+  it "finds by alternate name" do
+    #not a great test. some of these characters are 'a' acute 
+    alternate_name = 'Central African Republic. Haut Commissariat à la recherche'
+    auth = Authority.search alternate_name
+    expect(auth.sameAs).to eq('https://lccn.loc.gov/n90645849')
+  end
+
+  after(:all) do
+    Authority.delete_all
   end
 end
 
- 
 RSpec.describe Authority, "#pub_count" do
   before(:all) do
     rec = open(File.dirname(__FILE__)+"/data/schizo_branch.ndj").read

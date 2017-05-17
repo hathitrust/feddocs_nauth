@@ -84,5 +84,15 @@ module Nauth
       end
       total_pubs
     end
+
+    # search for a given name
+    def self.search name
+      # prefer names
+      auth = Authority.find_by(name:name) rescue nil
+      if auth.nil?
+        auth = Authority.where(alternateName:name).limit(1).first
+      end
+      auth
+    end
   end
 end
