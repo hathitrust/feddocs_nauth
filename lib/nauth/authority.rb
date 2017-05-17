@@ -32,22 +32,36 @@ module Nauth
       marc = MARC::Record.new_from_hash(rec) 
       if !marc.nil?
         extracted = @@extractor.map_record(marc)
-        if !extracted['name']
-          return nil
-        end
-        extracted['name'] = extracted['name'][0].gsub(/([^\.])\t/, '\1 ').split("\t")
-        self.name = extracted['name'].join(' ').chomp('.')
-        self.label = extracted['name'].pop
-        self.sameAs = @@loc_uri+extracted['sameAs'][0].gsub(/ /,'')
-        if extracted['alternateName']
-          extracted['alternateName'].each do |aname|
-            self.alternateName << aname
+        if extracted['name']
+          self.type = 'Person'
+          self.name = extracted['name'].join(' ').chomp('.')
+          self.label = extracted['name'].pop
+          self.sameAs = @@loc_uri+extracted['sameAs'][0].gsub(/ /,'')
+          if extracted['alternateName']
+            extracted['alternateName'].each do |aname|
+              self.alternateName << aname
+            end
+            self.alternateName.uniq!
           end
-          self.alternateName.uniq!
-        end
-        if extracted['name'].count > 0
-          self.parentOrganization = extracted['name'].join(' ').chomp('.')
-          self.add_to_parent extracted['name'] 
+        elsif extracted['corp_name']
+          self.type = 'Organization'
+          extracted['corp_name'] = extracted['corp_name'][0].gsub(/([^\.])\t/, '\1 ').split("\t")
+          self.name = extracted['corp_name'].join(' ').chomp('.')
+          self.label = extracted['corp_name'].pop
+          self.sameAs = @@loc_uri+extracted['sameAs'][0].gsub(/ /,'')
+          if extracted['corp_alternateName']
+            extracted['corp_alternateName'].each do |aname|
+              self.alternateName << aname
+            end
+            self.alternateName.uniq!
+          end
+          
+          if extracted['corp_name'].count > 0
+            self.parentOrganization = extracted['corp_name'].join(' ').chomp('.')
+            self.add_to_parent extracted['corp_name'] 
+          end
+        else
+          return nil
         end
       end     
     end

@@ -11,6 +11,9 @@ RSpec.describe Authority, "#new" do
     @schizo = Authority.new( :record=>rec )
     #@schizo.record = rec
     @schizo.save!
+    rec = open(File.dirname(__FILE__)+"/data/person.ndj").read
+    @person = Authority.new( :record=>rec)
+    @person.save!
   end
 
   it "creates three records from 1 authority record" do
@@ -36,6 +39,12 @@ RSpec.describe Authority, "#new" do
     expect(dupe_rec.valid?).to be_falsey
     c = Authority.where(name:'National Institute of Mental Health (U.S.). Division of Clinical Research. Schizophrenia Research Branch').count
     expect(c).to eq(1)
+  end
+
+  it "extracts a person authority record" do
+    expect(@person.name).to eq('Pāṇḍeya, Gaṅgāprasāda')
+    expect(@person.alternateName).to include('Gaṅgāprasāda Pāṇḍeya')
+    expect(@person.sameAs).to eq('https://lccn.loc.gov/n89253171')
   end
 
   after(:all) do
@@ -70,7 +79,6 @@ RSpec.describe Authority, "#search" do
   it "finds by name" do
     name = 'Haut Commissariat à la recherche de la République centrafricaine'
     auth = Authority.search name
-    PP.pp auth
     expect(auth.sameAs).to eq('https://lccn.loc.gov/n90645849')
   end
 
