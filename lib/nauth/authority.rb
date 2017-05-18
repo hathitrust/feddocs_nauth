@@ -102,9 +102,9 @@ module Nauth
     # search for a given name
     def self.search name
       # prefer names
-      auth = Authority.find_by(name:name) rescue nil
+      auth = Authority.find_by(name:name.chomp('.')) rescue nil
       if auth.nil?
-        auth = Authority.where(alternateName:name).limit(1).first
+        auth = Authority.where(alternateName:name.chomp('.')).limit(1).first
       end
       auth
     end
