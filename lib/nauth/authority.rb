@@ -39,7 +39,7 @@ module Nauth
           self.sameAs = @@loc_uri+extracted['sameAs'][0].gsub(/ /,'')
           if extracted['alternateName']
             extracted['alternateName'].each do |aname|
-              self.alternateName << aname
+              self.alternateName << aname.chomp('.')
             end
             self.alternateName.uniq!
           end
