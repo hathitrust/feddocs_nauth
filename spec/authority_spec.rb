@@ -120,6 +120,16 @@ RSpec.describe Authority, "#pub_count" do
     expect(nimh.pub_count).to eq(5)
   end
 
+  it "we can differentiate between calculated pub_count and database pubcount" do
+    nimh = Authority.find_by(name:"National Institute of Mental Health (U.S.)")
+    expect(nimh['pub_count']).to eq(0)
+    expect(nimh.pub_count).to eq(5)
+    expect(nimh['pub_count']).to eq(5)
+    nimh.save
+    nimhb = Authority.find_by(name:"National Institute of Mental Health (U.S.)")
+    expect(nimhb['pub_count']).to eq(5) 
+  end
+
   after(:all) do
     Authority.delete_all
   end

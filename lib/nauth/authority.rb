@@ -15,7 +15,8 @@ module Nauth
     field :alternateName, type: Array, default: []
     field :url, type: String
     field :record
-    field :count, type: Integer, default: 0
+    field :count, type: Integer, default: 0 # for just this Auth
+    field :pub_count, type: Integer, default: 0 # for this Auth and subordinates
 
     validates_uniqueness_of :name
 
@@ -91,12 +92,12 @@ module Nauth
     # collect pub counts for this org and any subordinates
     # Don't do this on "United States" !
     def pub_count
-      total_pubs = self.count
+      self['pub_count'] = self.count
       self.subOrganization.each do | sub |
         s = Authority.find_by(name:sub)
-        total_pubs += s.pub_count #will recursively call pub_count on subs
+        self['pub_count'] += s.pub_count #will recursively call pub_count on subs
       end
-      total_pubs
+      self['pub_count']
     end
 
     # search for a given name
