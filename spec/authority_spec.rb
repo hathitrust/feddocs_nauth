@@ -63,6 +63,12 @@ RSpec.describe Authority, "#new" do
     expect(p.label).to eq('Congress (97th, 2nd session : 1982).')
   end
 
+  it "deals with treaty records" do
+    rec = open(File.dirname(__FILE__)+"/data/treaty_record.json").read
+    rec = Authority.new( :record=>rec )
+    expect(rec.name).to eq('United States. Treaties, etc. 1858 June 19')
+  end     
+
   after(:all) do
     Authority.delete_all
   end
