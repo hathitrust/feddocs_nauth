@@ -14,9 +14,9 @@ module Nauth
     field :label, type: String
     field :alternateName, type: Array, default: []
     field :url, type: String
-    field :record
     field :count, type: Integer, default: 0 # for just this Auth
     field :pub_count, type: Integer, default: 0 # for this Auth and subordinates
+    field :marc
 
     validates_uniqueness_of :name
 
@@ -28,44 +28,69 @@ module Nauth
       super
     end
 
-    def record=rec
-      rec = JSON.parse(rec)
-      marc = MARC::Record.new_from_hash(rec) 
-      if !marc.nil?
-        extracted = @@extractor.map_record(marc)
-        if extracted['name']
-          self.type = 'Person'
-          self.name = extracted['name'].join(' ').chomp('.')
-          self.label = extracted['name'].pop
-          self.sameAs = @@loc_uri+extracted['sameAs'][0].gsub(/ /,'')
-          if extracted['alternateName']
-            extracted['alternateName'].each do |aname|
+    def marc=rec
+      if rec.respond_to?(:keys)
+        self['marc'] = rec
+      else
+        self['marc'] = JSON.parse(rec)
+      end
+      if !self.marc.nil?
+        self.type 
+        if self.extracted['name']
+          self.name = self.extracted['name'].join(' ').chomp('.')
+          self.label = self.extracted['name'].pop
+          self.sameAs = @@loc_uri+self.extracted['sameAs'][0].gsub(/ /,'')
+          if self.extracted['alternateName']
+            self.extracted['alternateName'].each do |aname|
               self.alternateName << aname.chomp('.')
             end
             self.alternateName.uniq!
           end
-        elsif extracted['corp_name']
-          self.type = 'Organization'
-          extracted['corp_name'] = extracted['corp_name'][0].gsub(/([^\.])\t/, '\1 ').split("\t")
-          self.name = extracted['corp_name'].join(' ').chomp('.')
-          self.label = extracted['corp_name'].pop
-          self.sameAs = @@loc_uri+extracted['sameAs'][0].gsub(/ /,'')
-          if extracted['corp_alternateName']
-            extracted['corp_alternateName'].each do |aname|
+        elsif self.extracted['corp_name']
+          self.extracted['corp_name'] = self.extracted['corp_name'][0].gsub(/([^\.])\t/, '\1 ').split("\t")
+          self.name = self.extracted['corp_name'].join(' ').chomp('.')
+          self.label = self.extracted['corp_name'].pop
+          self.sameAs = @@loc_uri+self.extracted['sameAs'][0].gsub(/ /,'')
+          if self.extracted['corp_alternateName']
+            self.extracted['corp_alternateName'].each do |aname|
               self.alternateName << aname
             end
             self.alternateName.uniq!
           end
-          
-          if extracted['corp_name'].count > 0
-            self.parentOrganization = extracted['corp_name'].join(' ').chomp('.')
-            self.add_to_parent extracted['corp_name'] 
-          end
+       
+          self.parentOrganization          
         else
           return nil
         end
       end     
     end
+
+    def extracted
+      @extracted ||= @@extractor.map_record(self.marc_record)
+    end
+
+    def marc_record
+      @marc_record ||= MARC::Record.new_from_hash(self.marc)
+    end
+
+    def parentOrganization
+      if self.extracted['corp_name'].count > 0
+        @parentOrganization ||= self.extracted['corp_name'].join(' ').chomp('.')
+        self.add_to_parent self.extracted['corp_name']
+      end
+      @parentOrganization
+    end
+
+    def type
+      if @type
+        @type
+      elsif self.extracted['corp_name']
+        @type = 'Organization'
+      elsif self.extracted['name']
+        @type = 'Person'
+      end
+   end 
+
 
     # recursively add/create parent given a parent name array
     def add_to_parent name
@@ -77,7 +102,7 @@ module Nauth
         parent.label = name.pop
         parent.subOrganization << self.name
         parent.subOrganization.uniq!
-        parent.type = self.type
+        parent.type = 'Organization' 
         if name.count > 0
           parent.parentOrganization = name.join(' ').chomp('.')
           parent.add_to_parent name
@@ -96,6 +121,7 @@ module Nauth
       self.subOrganization.each do | sub |
         s = Authority.find_by(name:sub)
         self['pub_count'] += s.pub_count #will recursively call pub_count on subs
+        s.save
       end
       self['pub_count']
     end

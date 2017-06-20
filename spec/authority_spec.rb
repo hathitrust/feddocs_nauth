@@ -8,11 +8,10 @@ RSpec.describe Authority, "#new" do
 
   before(:all) do
     rec = open(File.dirname(__FILE__)+"/data/schizo_branch.ndj").read
-    @schizo = Authority.new( :record=>rec )
-    #@schizo.record = rec
+    @schizo = Authority.new( :marc=>rec )
     @schizo.save!
     rec = open(File.dirname(__FILE__)+"/data/person.ndj").read
-    @person = Authority.new( :record=>rec)
+    @person = Authority.new( :marc=>rec)
     @person.save!
   end
 
@@ -20,6 +19,7 @@ RSpec.describe Authority, "#new" do
     expect(@schizo.name).to eq("National Institute of Mental Health (U.S.). Division of Clinical Research. Schizophrenia Research Branch")
     expect(@schizo.label).to eq("Schizophrenia Research Branch")
     expect(@schizo.parentOrganization).to eq("National Institute of Mental Health (U.S.). Division of Clinical Research")
+    expect(@schizo.type).to eq('Organization')
   end
 
   it "extracts alternate names from 410/510" do
@@ -45,6 +45,12 @@ RSpec.describe Authority, "#new" do
     expect(@person.name).to eq('Pāṇḍeya, Gaṅgāprasāda')
     expect(@person.alternateName).to include('Gaṅgāprasāda Pāṇḍeya')
     expect(@person.sameAs).to eq('https://lccn.loc.gov/n89253171')
+    expect(@person.type).to eq('Person')
+  end
+
+  it "saves the marc" do
+    per = Authority.find_by(name:'Pāṇḍeya, Gaṅgāprasāda')
+    expect(per.marc).to be_truthy
   end
 
   after(:all) do
@@ -56,7 +62,7 @@ end
 RSpec.describe Authority, "#new" do
   it "extracts the 'n' subfield in order" do
     rec = open(File.dirname(__FILE__)+"/data/with_110n.json").read
-    rec = Authority.new( :record=>rec )
+    rec = Authority.new( :marc=>rec )
     expect(rec.name).to eq('United States. Congress (97th, 2nd session : 1982). Senate')
     expect(rec.parentOrganization).to eq('United States. Congress (97th, 2nd session : 1982)')
     p = Authority.where(name:'United States. Congress (97th, 2nd session : 1982)').first
@@ -65,20 +71,24 @@ RSpec.describe Authority, "#new" do
 
   it "deals with treaty records" do
     rec = open(File.dirname(__FILE__)+"/data/treaty_record.json").read
-    rec = Authority.new( :record=>rec )
+    rec = Authority.new( :marc=>rec )
     expect(rec.name).to eq('United States. Treaties, etc. 1858 June 19')
   end     
 
   after(:all) do
     Authority.delete_all
   end
+end
 
+RSpec.describe Authority, "#parentOrganization" do
+  before(:all) do
+  end
 end
 
 RSpec.describe Authority, "#search" do
   before(:all) do
     rec = open(File.dirname(__FILE__)+"/data/with_410.json").read
-    @rec = Authority.new(:record=>rec)
+    @rec = Authority.new(:marc=>rec)
     @rec.save!
   end
 
@@ -103,9 +113,9 @@ end
 RSpec.describe Authority, "#pub_count" do
   before(:all) do
     rec = open(File.dirname(__FILE__)+"/data/schizo_branch.ndj").read
-    @schizo = Authority.new( :record=>rec )
+    @schizo = Authority.new( :marc=>rec )
     @schizo.count = 3
-    @schizo.save
+    @schizo.save!
   end
 
   it "returns count for terminal orgs" do
@@ -115,7 +125,7 @@ RSpec.describe Authority, "#pub_count" do
   it "collects subordinate pub counts" do
     dcr = Authority.find_by(label:"Division of Clinical Research.")
     dcr.count = 2
-    dcr.save
+    dcr.save!
     nimh = Authority.find_by(name:"National Institute of Mental Health (U.S.)")
     expect(nimh.pub_count).to eq(5)
   end
@@ -125,7 +135,7 @@ RSpec.describe Authority, "#pub_count" do
     expect(nimh['pub_count']).to eq(0)
     expect(nimh.pub_count).to eq(5)
     expect(nimh['pub_count']).to eq(5)
-    nimh.save
+    nimh.save!
     nimhb = Authority.find_by(name:"National Institute of Mental Health (U.S.)")
     expect(nimhb['pub_count']).to eq(5) 
   end
