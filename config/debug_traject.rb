@@ -1,4 +1,5 @@
 require 'pp'
+require 'traject/json_writer'
 
 # A sample traject configration, save as say `traject_config.rb`, then
 # run `traject -c traject_config.rb marc_file.marc` to index to
@@ -21,18 +22,12 @@ extend Traject::Macros::MarcFormats
 # files however you like, you can call traject with as many
 # config files as you like, `traject -c one.rb -c two.rb -c etc.rb`
 settings do
-  #provide "solr.url", "http://solr-sdr-usfeddocs-dev:9032/usfeddocs/collection1"
+  
+  provide "writer_class_name", "Traject::JsonWriter"
+  provide "output_file", "out.json"
   provide "reader_class_name", "Traject::NDJReader"
   provide "marc_source.type", "json"
 end
 
-# name
-to_field "corp_name", extract_marc("110abntd", :separator => "\t")
-to_field "title", extract_marc("110t")
-to_field "name", extract_marc("100abcd")
-
-# alternateName
-to_field "alternateName",          extract_marc("400abcd:500abcd")
-
-# sameAs
-to_field "sameAs", extract_marc("010a")
+to_field "fiveteni", extract_marc("410i:510i")
+to_field "fivetenw", extract_marc("410i:510w")

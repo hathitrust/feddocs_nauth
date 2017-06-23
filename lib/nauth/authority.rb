@@ -8,11 +8,15 @@ module Nauth
     include Mongoid::Document
     field :name, type: String
     field :parentOrganization, type: String
+    field :superiors, type: Array, default: []
+    field :subordinates, type: Array, default: []
+    field :predecessors, type: Array, default: []
+    field :successors, type: Array, default: []
+    field :alternate_names, type: Array, default: []
     field :subOrganization, type: Array, default: []
     field :sameAs, type: String
     field :type, type: String, default: 'Organization'
     field :label, type: String
-    field :alternateName, type: Array, default: []
     field :url, type: String
     field :count, type: Integer, default: 0 # for just this Auth
     field :pub_count, type: Integer, default: 0 # for this Auth and subordinates
@@ -40,28 +44,21 @@ module Nauth
           self.name = self.extracted['name'].join(' ').chomp('.')
           self.label = self.extracted['name'].pop
           self.sameAs = @@loc_uri+self.extracted['sameAs'][0].gsub(/ /,'')
-          if self.extracted['alternateName']
-            self.extracted['alternateName'].each do |aname|
-              self.alternateName << aname.chomp('.')
-            end
-            self.alternateName.uniq!
-          end
         elsif self.extracted['corp_name']
           self.extracted['corp_name'] = self.extracted['corp_name'][0].gsub(/([^\.])\t/, '\1 ').split("\t")
           self.name = self.extracted['corp_name'].join(' ').chomp('.')
           self.label = self.extracted['corp_name'].pop
           self.sameAs = @@loc_uri+self.extracted['sameAs'][0].gsub(/ /,'')
-          if self.extracted['corp_alternateName']
-            self.extracted['corp_alternateName'].each do |aname|
-              self.alternateName << aname
-            end
-            self.alternateName.uniq!
-          end
-       
           self.parentOrganization          
         else
           return nil
         end
+        self.alternate_names
+        self.subordinates
+        self.superiors
+        self.successors
+        self.predecessors
+        self.employers
       end     
     end
 
@@ -73,21 +70,29 @@ module Nauth
       @marc_record ||= MARC::Record.new_from_hash(self.marc)
     end
 
+    # computed from the 110 itself
     def parentOrganization
       if self.extracted['corp_name'].count > 0
-        @parentOrganization ||= self.extracted['corp_name'].join(' ').chomp('.')
+        self['parentOrganization'] ||= self.extracted['corp_name'].join(' ').chomp('.')
         self.add_to_parent self.extracted['corp_name']
       end
-      @parentOrganization
+      self['parentOrganization'] 
+    end
+
+    def subOrganization
+      self['subOrganization'] = Authority.where(parentOrganization:self.name).pluck(:name)
+      self['subOrganization'] += self.subordinates
+      self['subOrganization'].uniq!
+      self['subOrganization']
     end
 
     def type
-      if @type
-        @type
+      if self.extracted['title']
+        self['type'] = 'CreativeWork'
       elsif self.extracted['corp_name']
-        @type = 'Organization'
+        self['type'] = 'Organization'
       elsif self.extracted['name']
-        @type = 'Person'
+        self['type'] = 'Person'
       end
    end 
 
@@ -118,6 +123,10 @@ module Nauth
     # Don't do this on "United States" !
     def pub_count
       self['pub_count'] = self.count
+      self.predecessors.each do |pred|
+        p = Authority.find_by(name:pred)
+        self['pub_count'] += s.pub_count
+      end
       self.subOrganization.each do | sub |
         s = Authority.find_by(name:sub)
         self['pub_count'] += s.pub_count #will recursively call pub_count on subs
@@ -131,9 +140,53 @@ module Nauth
       # prefer names
       auth = Authority.find_by(name:name.chomp('.')) rescue nil
       if auth.nil?
-        auth = Authority.where(alternateName:name.chomp('.')).limit(1).first
+        auth = Authority.where(alternate_names:name.chomp('.')).limit(1).first
       end
       auth
     end
+
+    # handles 4xx and 5xx
+    def tracings
+      if self[__callee__] == [] and @tracings.nil? and !self.marc.nil?
+        @tracings = {superiors:[],
+                     subordinates:[],
+                     successors:[],
+                     predecessors:[],
+                     employers:[],
+                     alternate_names:[]}
+        self.marc_record.each_by_tag(['400','410','500','510']) do | f |
+          codes = ['a','b','c','n','t','d']
+          this_record = f.find_all {|sub| codes.include? sub.code}.collect{|sub|sub.value}.join(' ')
+          case
+          when f['i'] =~ /h..rarc.*al superior/i , f['w'] =~ /^t/
+            @tracings[:superiors] << this_record.chomp('.')
+          when f['i'] =~ /h..rarc.+al subordinate/u
+            @tracings[:subordinates] << this_record.chomp('.')
+          when f['i'] =~ /suc*es*or/i , f['i'] =~ /product of merger/i ,
+            f['i'] =~ /product of split/i , f['i'] =~ /succeeded by/i ,
+            f['w'] =~ /^b/
+            @tracings[:successors] << this_record.chomp('.')
+          when f['i'] =~ /predecessor/i , f['i'] =~ /preceded by/i ,
+            f['i'] =~ /mergee/i , f['i'] =~ /component of merger/i , 
+            f['i'] =~ /absorbed corporate body/i , f['w'] =~ /^a/
+            @tracings[:predecessors] << this_record.chomp('.')
+          when f['i'] =~ /employer/i
+            @tracings[:employers] << this_record.chomp('.')
+          else
+            @tracings[:alternate_names] << this_record.chomp('.')
+          end
+        end
+      end
+      if !@tracings.nil?
+        self[__callee__] = @tracings[__callee__].uniq
+      end
+      self[__callee__]
+    end
+    alias_method :predecessors, :tracings
+    alias_method :successors, :tracings
+    alias_method :subordinates, :tracings
+    alias_method :superiors, :tracings
+    alias_method :alternate_names, :tracings
+    alias_method :employers, :tracings
   end
 end

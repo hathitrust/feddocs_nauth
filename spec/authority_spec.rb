@@ -13,6 +13,8 @@ RSpec.describe Authority, "#new" do
     rec = open(File.dirname(__FILE__)+"/data/person.ndj").read
     @person = Authority.new( :marc=>rec)
     @person.save!
+    @noaa = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/noaa.json").read)
+    @noaa.save!
   end
 
   it "creates three records from 1 authority record" do
@@ -23,7 +25,8 @@ RSpec.describe Authority, "#new" do
   end
 
   it "extracts alternate names from 410/510" do
-    expect(@schizo.alternateName).to include("National Institute of Mental Health (U.S.). Division of Clinical and Treatment Research. Schizophrenia Research Branch")
+    expect(@noaa.alternate_names).to include("United States. National Oceanic and Atmospheric Administration. Coastal Ocean Program Office")
+    expect(@schizo.successors).to include("National Institute of Mental Health (U.S.). Division of Clinical and Treatment Research. Schizophrenia Research Branch")
   end
 
   it "creates the parent records from 1 authority record" do
@@ -43,9 +46,10 @@ RSpec.describe Authority, "#new" do
 
   it "extracts a person authority record" do
     expect(@person.name).to eq('Pāṇḍeya, Gaṅgāprasāda')
-    expect(@person.alternateName).to include('Gaṅgāprasāda Pāṇḍeya')
+    expect(@person.alternate_names).to include('Gaṅgāprasāda Pāṇḍeya')
     expect(@person.sameAs).to eq('https://lccn.loc.gov/n89253171')
     expect(@person.type).to eq('Person')
+    expect(@person['type']).to eq('Person')
   end
 
   it "saves the marc" do
@@ -75,6 +79,14 @@ RSpec.describe Authority, "#new" do
     expect(rec.name).to eq('United States. Treaties, etc. 1858 June 19')
   end     
 
+  it "deals with legislative acts" do
+    rec = open(File.dirname(__FILE__)+"/data/fake_corp_name.json").read
+    rec = Authority.new( :marc=>rec )
+    expect(rec.name).to eq('United States. Protecting Americans from Tax Hikes Act of 2015')
+    expect(rec.type).to eq('CreativeWork')
+  end
+
+
   after(:all) do
     Authority.delete_all
   end
@@ -82,6 +94,49 @@ end
 
 RSpec.describe Authority, "#parentOrganization" do
   before(:all) do
+    @noaa = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/noaa.json").read)
+    @noaa.save!
+  end
+
+  xit "uses alternate_names to find a more precise parentOrganizations"  do
+    expect(@noaa.parentOrganization).to eq("United States. National Oceanic and Atmospheric Administration")
+  end
+
+  after(:all) do 
+    Authority.delete_all
+  end
+end
+
+RSpec.describe Authority, "#relations (4XX/5xx)" do
+  before(:all) do
+    @uscg = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/uscg.json").read)
+    @uscg.save!
+    @army = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/army_chemical.json").read)
+    @army.save!
+  end
+
+  it "predecessors extracts from $w/a and i" do
+    expect(@uscg.predecessors).to include("United States. Life-Saving Service")
+  end
+
+  it "superiors extracts from $wi where appropriate" do
+    expect(@uscg.superiors).to include("United States. Department of the Treasury")
+    expect(@uscg.superiors).to include("United States. Department of Transportation")
+    expect(@uscg.alternate_names).to include("United States. Department of Homeland Security. Coast Guard")
+    expect(@uscg.alternate_names).to_not include("United States. Department of the Treasury")
+  end
+
+  it "saves the relations fields" do
+    auth = Authority.find_by({name:"United States. Coast Guard"})
+    expect(auth.superiors).to include("United States. Department of Transportation")
+  end
+
+  it "successors extracts from $w/b and i" do
+    expect(@army.successors).to include("United States. Army. Chemical Corps. Medical Division")
+  end
+
+  after(:all) do
+    Authority.delete_all
   end
 end
 
