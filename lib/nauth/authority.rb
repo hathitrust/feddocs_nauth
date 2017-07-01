@@ -66,6 +66,11 @@ module Nauth
         self.successors
         self.predecessors
         self.employers
+        self.start_period
+        self.end_period
+        self.establishment_date
+        self.termination_date
+
       end     
     end
 
