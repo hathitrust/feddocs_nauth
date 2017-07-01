@@ -109,7 +109,9 @@ module Nauth
     end 
 
     def get_field 
-      if self.extracted[__callee__.to_s]
+      if !self[__callee__].nil? and self[__callee__] != []
+        self[__callee__]
+      elsif self.extracted[__callee__.to_s]
         self[__callee__] = self.extracted[__callee__.to_s]
       else
         nil   
