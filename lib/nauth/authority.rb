@@ -15,8 +15,14 @@ module Nauth
     field :alternate_names, type: Array, default: []
     field :subOrganization, type: Array, default: []
     field :sameAs, type: String
+    field :establishment_date, type: Array
+    field :termination_date, type: Array
+    field :start_period, type: Array
+    field :end_period, type: Array
     field :type, type: String, default: 'Organization'
     field :label, type: String
+    field :length, type: Integer, default: 0
+    field :alternate_length, type: Integer, default: 0
     field :url, type: String
     field :count, type: Integer, default: 0 # for just this Auth
     field :pub_count, type: Integer, default: 0 # for this Auth and subordinates
@@ -49,6 +55,7 @@ module Nauth
           self.name = self.extracted['corp_name'].join(' ').chomp('.')
           self.label = self.extracted['corp_name'].pop
           self.sameAs = @@loc_uri+self.extracted['sameAs'][0].gsub(/ /,'')
+          self.length = self.extracted['corp_name'].length
           self.parentOrganization          
         else
           return nil
@@ -94,8 +101,19 @@ module Nauth
       elsif self.extracted['name']
         self['type'] = 'Person'
       end
-   end 
+    end 
 
+    def get_field 
+      if self.extracted[__callee__.to_s]
+        self[__callee__] = self.extracted[__callee__.to_s]
+      else
+        nil   
+      end
+    end
+    alias_method :start_period, :get_field
+    alias_method :end_period, :get_field
+    alias_method :establishment_date, :get_field
+    alias_method :termination_date, :get_field
 
     # recursively add/create parent given a parent name array
     def add_to_parent name
@@ -156,7 +174,8 @@ module Nauth
                      alternate_names:[]}
         self.marc_record.each_by_tag(['400','410','500','510']) do | f |
           codes = ['a','b','c','n','t','d']
-          this_record = f.find_all {|sub| codes.include? sub.code}.collect{|sub|sub.value}.join(' ')
+          pieces = f.find_all {|sub| codes.include? sub.code}.collect{|sub|sub.value}
+          this_record = pieces.join(' ')
           case
           when f['i'] =~ /h..rarc.*al superior/i , f['w'] =~ /^t/
             @tracings[:superiors] << this_record.chomp('.')
@@ -174,6 +193,9 @@ module Nauth
             @tracings[:employers] << this_record.chomp('.')
           else
             @tracings[:alternate_names] << this_record.chomp('.')
+            if self.alternate_length < pieces.count
+              self.alternate_length = pieces.count
+            end
           end
         end
       end

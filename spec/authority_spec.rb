@@ -165,6 +165,29 @@ RSpec.describe Authority, "#search" do
   end
 end
 
+RSpec.describe Authority, "#start_period" do
+  before(:all) do
+    rec = open(File.dirname(__FILE__)+"/data/aba.json").read
+    @aba = Authority.new( :marc=>rec )
+    @aba.save!
+  end
+
+  after(:all) do
+    @aba.delete
+  end
+    
+  it "extracts the start of this organization" do
+    expect(@aba.start_period).to eq(['1878'])
+    expect(@aba.establishment_date).to eq(['est'])
+  end
+
+  it "extracts the end of this organization" do
+    expect(@aba.end_period).to eq(['never'])
+    expect(@aba.termination_date).to eq(['end'])
+  end
+
+end
+
 RSpec.describe Authority, "#pub_count" do
   before(:all) do
     rec = open(File.dirname(__FILE__)+"/data/schizo_branch.ndj").read

@@ -36,3 +36,9 @@ to_field "alternateName",          extract_marc("400abcd:500abcd")
 
 # sameAs
 to_field "sameAs", extract_marc("010a")
+
+#046 coded dates
+to_field "start_period", extract_marc("046s")
+to_field "end_period", extract_marc("046t")
+to_field "establishment_date", extract_marc("046q")
+to_field "termination_date", extract_marc("046r")
