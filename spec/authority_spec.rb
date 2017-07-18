@@ -89,7 +89,7 @@ RSpec.describe Authority, "#new" do
   end
 end
 
-RSpec.describe Authority, "#relations (4XX/5xx)" do
+RSpec.describe Authority, "#relationships (4XX/5xx)" do
   before(:all) do
     # uscg has explicit 510s and 410s
     @uscg = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/uscg.json").read)
@@ -145,6 +145,20 @@ RSpec.describe Authority, "#relations (4XX/5xx)" do
 
   it "successors extracts from $w/b and i" do
     expect(@army.successors).to include("United States. Army. Chemical Corps. Medical Division")
+  end
+
+  it "handles a complicated record's relationships" do
+    hew = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/dept_hew.json").read)
+    expect(hew.name).to eq('United States. Department of Health, Education, and Welfare')
+    expect(hew.label).to eq('Department of Health, Education, and Welfare')
+    expect(hew.alternate_names).to include('D.H.E.W')
+    expect(hew.alternate_names).to include('DHEW')
+    expect(hew.alternate_names).to include('United States. Department of Health')
+    expect(hew.predecessors).to include('United States. Federal Security Agency')
+    expect(hew.successors).to include('United States. Department of Health and Human Services')
+    expect(hew.subordinates).to include('United States. Public Health Service')
+    expect(hew.parents).to include('United States')
+
   end
 
   after(:all) do
