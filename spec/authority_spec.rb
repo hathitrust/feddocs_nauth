@@ -15,25 +15,22 @@ RSpec.describe Authority, "#new" do
     @person.save!
     @noaa = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/noaa.json").read)
     @noaa.save!
+    @nih = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/nih.json").read)
+    @nih.save
   end
 
-  it "creates three records from 1 authority record" do
-    expect(@schizo.name).to eq("National Institute of Mental Health (U.S.). Division of Clinical Research. Schizophrenia Research Branch")
-    expect(@schizo.label).to eq("Schizophrenia Research Branch")
-    expect(@schizo.parentOrganization).to eq("National Institute of Mental Health (U.S.). Division of Clinical Research")
-    expect(@schizo.type).to eq('Organization')
+  it "throws an error for a subject heading" do
+    f = open(File.dirname(__FILE__)+"/data/subject_heading.json").read
+    a = Authority.new
+    expect{a.marc = f}.to raise_error(RuntimeError)
+    f = open(File.dirname(__FILE__)+"/data/sh_rec.json").read
+    a = Authority.new
+    expect{a.marc = f}.to raise_error(RuntimeError)
   end
 
   it "extracts alternate names from 410/510" do
     expect(@noaa.alternate_names).to include("United States. National Oceanic and Atmospheric Administration. Coastal Ocean Program Office")
     expect(@schizo.successors).to include("National Institute of Mental Health (U.S.). Division of Clinical and Treatment Research. Schizophrenia Research Branch")
-  end
-
-  it "creates the parent records from 1 authority record" do
-    dcr = Authority.where(name:'National Institute of Mental Health (U.S.). Division of Clinical Research').limit(1).first
-    expect(dcr.subOrganization).to include('National Institute of Mental Health (U.S.). Division of Clinical Research. Schizophrenia Research Branch')
-    nimh = Authority.where(name:"National Institute of Mental Health (U.S.)").limit(1).first
-    expect(nimh.subOrganization).to include('National Institute of Mental Health (U.S.). Division of Clinical Research')
   end
 
   it "ensures uniqueness of name" do
@@ -52,6 +49,10 @@ RSpec.describe Authority, "#new" do
     expect(@person['type']).to eq('Person')
   end
 
+  it "extracts the 010 as a sameAs url" do
+    expect(@nih.sameAs).to eq('https://lccn.loc.gov/n78085445')
+  end
+
   it "saves the marc" do
     per = Authority.find_by(name:'Pāṇḍeya, Gaṅgāprasāda')
     expect(per.marc).to be_truthy
@@ -68,51 +69,38 @@ RSpec.describe Authority, "#new" do
     rec = open(File.dirname(__FILE__)+"/data/with_110n.json").read
     rec = Authority.new( :marc=>rec )
     expect(rec.name).to eq('United States. Congress (97th, 2nd session : 1982). Senate')
-    expect(rec.parentOrganization).to eq('United States. Congress (97th, 2nd session : 1982)')
-    p = Authority.where(name:'United States. Congress (97th, 2nd session : 1982)').first
-    expect(p.label).to eq('Congress (97th, 2nd session : 1982).')
   end
 
   it "deals with treaty records" do
     rec = open(File.dirname(__FILE__)+"/data/treaty_record.json").read
-    rec = Authority.new( :marc=>rec )
-    expect(rec.name).to eq('United States. Treaties, etc. 1858 June 19')
+    expect{ Authority.new( :marc=>rec ) }.to raise_error(RuntimeError, "title heading, not a person or persons")
+    #expect(rec.name).to eq('United States. Treaties, etc. 1858 June 19')
   end     
 
   it "deals with legislative acts" do
     rec = open(File.dirname(__FILE__)+"/data/fake_corp_name.json").read
-    rec = Authority.new( :marc=>rec )
-    expect(rec.name).to eq('United States. Protecting Americans from Tax Hikes Act of 2015')
-    expect(rec.type).to eq('CreativeWork')
+    expect{ Authority.new( :marc=>rec ) }.to raise_error(RuntimeError, "title heading, not a person or persons")
+    #expect(rec.name).to eq('United States. Protecting Americans from Tax Hikes Act of 2015')
+    #expect(rec.type).to eq('CreativeWork')
   end
-
 
   after(:all) do
     Authority.delete_all
   end
 end
 
-RSpec.describe Authority, "#parentOrganization" do
-  before(:all) do
-    @noaa = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/noaa.json").read)
-    @noaa.save!
-  end
-
-  xit "uses alternate_names to find a more precise parentOrganizations"  do
-    expect(@noaa.parentOrganization).to eq("United States. National Oceanic and Atmospheric Administration")
-  end
-
-  after(:all) do 
-    Authority.delete_all
-  end
-end
-
 RSpec.describe Authority, "#relations (4XX/5xx)" do
   before(:all) do
+    # uscg has explicit 510s and 410s
     @uscg = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/uscg.json").read)
     @uscg.save!
     @army = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/army_chemical.json").read)
     @army.save!
+    @uscg_ou = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/uscg_ou.json").read)
+    @uscg_ou.save!
+    #airborne only has a 410. no 510s
+    @airborne = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/airborne.json").read)
+    @airborne.save!
   end
 
   it "predecessors extracts from $w/a and i" do
@@ -124,6 +112,30 @@ RSpec.describe Authority, "#relations (4XX/5xx)" do
     expect(@uscg.superiors).to include("United States. Department of Transportation")
     expect(@uscg.alternate_names).to include("United States. Department of Homeland Security. Coast Guard")
     expect(@uscg.alternate_names).to_not include("United States. Department of the Treasury")
+  end
+
+  it "calculates parents from 410#1s" do
+    expect(@uscg.label).to eq("Coast Guard")
+    expect(@uscg.parents_calculated).to include("United States. Department of the Treasury")
+    expect(@uscg.parents_calculated).to_not include("USCG")
+    expect(@airborne.parents_calculated).to include("United States. Coast Guard. Oceanographic Unit")
+  end
+
+  it "combines explicit and implicitly calculated parents into one" do
+    expect(@uscg.parents.count).to eq(5)
+    expect(@uscg.parents).to include("United States. Department of the Treasury")
+    expect(@airborne.parents).to eq(@airborne.parents_calculated | @airborne.superiors)
+  end
+
+  it "collects current and former parents" do
+    expect(@army.parents).to include("United States. Army. Chemical Warfare Service")
+  end
+
+  it "collects children from others calling it a parent" do
+    expect(@uscg_ou.children).to include("United States. Coast Guard. Airborne Radiation Thermometer Program")
+    expect(@uscg_ou.parents).to include("United States. Coast Guard")
+    expect(@uscg.children).to include("United States. Coast Guard. Oceanographic Unit")
+    expect(@uscg.children).to_not include("United States. Coast Guard. Airborne Radiation Thermometer Program")
   end
 
   it "saves the relations fields" do
@@ -190,32 +202,37 @@ end
 
 RSpec.describe Authority, "#pub_count" do
   before(:all) do
+    rec = open(File.dirname(__FILE__)+"/data/nimh.json").read
+    @nimh = Authority.new( :marc=>rec )
+    @nimh.count = 1
+    @nimh.save!
+    rec = open(File.dirname(__FILE__)+"/data/nimh_dcr.json").read
+    @nimh_dcr = Authority.new( :marc=>rec )
+    @nimh_dcr.count = 2
+    @nimh_dcr.save!
     rec = open(File.dirname(__FILE__)+"/data/schizo_branch.ndj").read
-    @schizo = Authority.new( :marc=>rec )
-    @schizo.count = 3
-    @schizo.save!
+    @nimh_dcr_s = Authority.new( :marc=>rec )
+    @nimh_dcr_s.count = 3
+    @nimh_dcr_s.save!
   end
 
   it "returns count for terminal orgs" do
-    expect(@schizo.pub_count).to eq(3)
+    expect(@nimh_dcr_s.pub_count).to eq(3)
   end
 
   it "collects subordinate pub counts" do
-    dcr = Authority.find_by(label:"Division of Clinical Research.")
-    dcr.count = 2
-    dcr.save!
-    nimh = Authority.find_by(name:"National Institute of Mental Health (U.S.)")
-    expect(nimh.pub_count).to eq(5)
+    expect(@nimh.pub_count).to eq(6)
+    expect(@nimh_dcr.pub_count).to eq(5)
   end
 
   it "we can differentiate between calculated pub_count and database pubcount" do
     nimh = Authority.find_by(name:"National Institute of Mental Health (U.S.)")
     expect(nimh['pub_count']).to eq(0)
-    expect(nimh.pub_count).to eq(5)
-    expect(nimh['pub_count']).to eq(5)
+    expect(nimh.pub_count).to eq(6)
+    expect(nimh['pub_count']).to eq(6)
     nimh.save!
     nimhb = Authority.find_by(name:"National Institute of Mental Health (U.S.)")
-    expect(nimhb['pub_count']).to eq(5) 
+    expect(nimhb['pub_count']).to eq(6) 
   end
 
   after(:all) do

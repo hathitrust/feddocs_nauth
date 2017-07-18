@@ -7,16 +7,16 @@ module Nauth
   class Authority 
     include Mongoid::Document
     field :name, type: String
-    field :parentOrganization, type: String
-    field :superiors, type: Array, default: []
-    field :subordinates, type: Array, default: []
+    field :parents, type: Array, default: []
+    field :parentOrganization, type: String #computed from 110
+    field :superiors, type: Array, default: [] # from tracings only
+    field :subordinates, type: Array, default: [] # from tracing labels
     field :predecessors, type: Array, default: []
     field :successors, type: Array, default: []
     field :alternate_names, type: Array, default: []
-    field :subOrganization, type: Array, default: []
     field :sameAs, type: String
-    field :establishment_date, type: Array
-    field :termination_date, type: Array
+    field :establishment_date, type: Array # don't actually exist
+    field :termination_date, type: Array # don't actually exist
     field :start_period, type: Array
     field :end_period, type: Array
     field :type, type: String, default: 'Organization'
@@ -51,27 +51,56 @@ module Nauth
           self.label = self.extracted['name'].pop
           self.sameAs = @@loc_uri+self.extracted['sameAs'][0].gsub(/ /,'')
         elsif self.extracted['corp_name']
+          # we used tab separators in the traject config, but very
+          # occasionally there is a tab in the string. Replace tabs in the 
+          # string with ' ' if they do not follow a '.'
           self.extracted['corp_name'] = self.extracted['corp_name'][0].gsub(/([^\.])\t/, '\1 ').split("\t")
           self.name = self.extracted['corp_name'].join(' ').chomp('.')
-          self.label = self.extracted['corp_name'].pop
+          self.label = self.extracted['corp_name'].last
           self.sameAs = @@loc_uri+self.extracted['sameAs'][0].gsub(/ /,'')
           self.length = self.extracted['corp_name'].length
-          self.parentOrganization          
+          #self.parentOrganization          
         else
           return nil
         end
-        self.alternate_names
-        self.subordinates
+        self.relationships
+=begin
+        #self.subordinates
         self.superiors
         self.successors
         self.predecessors
         self.employers
+=end
+        self.alternate_names
         self.start_period
         self.end_period
         self.establishment_date
         self.termination_date
 
       end     
+    end
+
+    def relationships
+      if self.type == "Organization"
+        self.parents
+        self.children
+      end
+      self.predecessors
+      self.successors
+    end
+
+    def parents
+      self['parents'] = self.superiors | self.employers | self.parents_calculated
+      # fall back to the 110
+      if self['parents'].count == 0 
+        self['parents'] << self.parentOrganization unless self.parentOrganization.nil?
+      end
+      self['parents']
+    end
+
+    def children
+      self['children'] = Authority.where(parents: self.name).pluck(:name)
+      self['children'] = self['children'] | self.subordinates
     end
 
     def extracted
@@ -82,13 +111,21 @@ module Nauth
       @marc_record ||= MARC::Record.new_from_hash(self.marc)
     end
 
-    # computed from the 110 itself
+  # computed from the 110 itself
     def parentOrganization
       if self.extracted['corp_name'].count > 0
-        self['parentOrganization'] ||= self.extracted['corp_name'].join(' ').chomp('.')
-        self.add_to_parent self.extracted['corp_name']
+        self['parentOrganization'] ||= self.extracted['corp_name'][0,self.extracted['corp_name'].length-1].join(' ').chomp('.')
       end
       self['parentOrganization'] 
+    end
+
+    # Take parents from the 410/510s
+    # There is often more detailed heirarchical information in the tracing fields 
+    # field should be array of subfields
+    def parent_from_tracings field
+      if field.last == self.label
+        field[0,field.length-1].join(' ').chomp('.')
+      end
     end
 
     def subOrganization
@@ -99,7 +136,10 @@ module Nauth
     end
 
     def type
-      if self.extracted['title']
+      if self.extracted['subject_heading'] or self.extracted['sameAs'][0] =~ /^s/
+        raise "subject heading, not a person or persons"
+      elsif self.extracted['title']
+        raise "title heading, not a person or persons"
         self['type'] = 'CreativeWork'
       elsif self.extracted['corp_name']
         self['type'] = 'Organization'
@@ -122,40 +162,23 @@ module Nauth
     alias_method :establishment_date, :get_field
     alias_method :termination_date, :get_field
 
-    # recursively add/create parent given a parent name array
-    def add_to_parent name
-      parent = Authority.where(name:name.join(' ').chomp('.')).limit(1).first
-      if parent.nil?
-        # create an empty record
-        parent = Authority.new
-        parent.name = name.join(' ').chomp('.')
-        parent.label = name.pop
-        parent.subOrganization << self.name
-        parent.subOrganization.uniq!
-        parent.type = 'Organization' 
-        if name.count > 0
-          parent.parentOrganization = name.join(' ').chomp('.')
-          parent.add_to_parent name
-        end
-      else
-        parent.subOrganization << self.name
-        parent.subOrganization.uniq!
-      end
-      parent.save
-    end 
-
     # collect pub counts for this org and any subordinates
     # Don't do this on "United States" !
     def pub_count
       self['pub_count'] = self.count
       self.predecessors.each do |pred|
-        p = Authority.find_by(name:pred)
-        self['pub_count'] += s.pub_count
+        p = Authority.find_by(name:pred) rescue nil 
+        if !p.nil?
+          self['pub_count'] += p.pub_count
+          p.save
+        end
       end
       self.subOrganization.each do | sub |
-        s = Authority.find_by(name:sub)
-        self['pub_count'] += s.pub_count #will recursively call pub_count on subs
-        s.save
+        s = Authority.find_by(name:sub) rescue nil
+        if !s.nil?
+          self['pub_count'] += s.pub_count #will recursively call pub_count on subs
+          s.save
+        end
       end
       self['pub_count']
     end
@@ -178,7 +201,8 @@ module Nauth
                      successors:[],
                      predecessors:[],
                      employers:[],
-                     alternate_names:[]}
+                     alternate_names:[],
+                     parents_calculated:[]}
         self.marc_record.each_by_tag(['400','410','500','510']) do | f |
           codes = ['a','b','c','n','t','d']
           pieces = f.find_all {|sub| codes.include? sub.code}.collect{|sub|sub.value}
@@ -200,6 +224,12 @@ module Nauth
             @tracings[:employers] << this_record.chomp('.')
           else
             @tracings[:alternate_names] << this_record.chomp('.')
+            if f.tag == "410"
+              p = self.parent_from_tracings pieces
+              if !p.nil?
+                (@tracings[:parents_calculated] << p).uniq!
+              end
+            end
             if self.alternate_length < pieces.count
               self.alternate_length = pieces.count
             end
@@ -208,9 +238,11 @@ module Nauth
       end
       if !@tracings.nil?
         self[__callee__] = @tracings[__callee__].uniq
+        self[__callee__] ||= []
       end
       self[__callee__]
     end
+    alias_method :parents_calculated, :tracings
     alias_method :predecessors, :tracings
     alias_method :successors, :tracings
     alias_method :subordinates, :tracings

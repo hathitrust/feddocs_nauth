@@ -27,15 +27,16 @@ settings do
 end
 
 # name
+to_field "subject_heading", extract_marc("100vxyz:110vxyz")
 to_field "corp_name", extract_marc("110abntd", :separator => "\t")
-to_field "title", extract_marc("110t")
+to_field "title", extract_marc("110t:100t")
 to_field "name", extract_marc("100abcd")
 
 # alternateName
 to_field "alternateName",          extract_marc("400abcd:500abcd")
 
 # sameAs
-to_field "sameAs", extract_marc("010a")
+to_field "sameAs", extract_marc("010a", default:[])
 
 #046 coded dates
 to_field "start_period", extract_marc("046s")
