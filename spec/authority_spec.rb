@@ -158,6 +158,9 @@ RSpec.describe Authority, "#relationships (4XX/5xx)" do
     expect(hew.successors).to include('United States. Department of Health and Human Services')
     expect(hew.subordinates).to include('United States. Public Health Service')
     expect(hew.parents).to include('United States')
+    jpl = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/jpl.json").read)
+    expect(jpl.name).to eq('Jet Propulsion Laboratory (U.S.)')
+    expect(jpl.parents).to include('United States. National Aeronautics and Space Administration')
 
   end
 

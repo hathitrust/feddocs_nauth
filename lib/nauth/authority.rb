@@ -93,7 +93,10 @@ module Nauth
       self['parents'] = self.superiors | self.employers | self.parents_calculated
       # fall back to the 110
       if self['parents'].count == 0 
-        self['parents'] << self.parentOrganization unless self.parentOrganization.nil?
+        po = self.parentOrganization
+        if po
+          self['parents'] << po
+        end
       end
       self['parents']
     end
@@ -123,7 +126,8 @@ module Nauth
     # There is often more detailed heirarchical information in the tracing fields 
     # field should be array of subfields
     def parent_from_tracings field
-      if field.last == self.label
+      #kill extraneous junk then match
+      if field.last == self.label.sub(/ \(U\.S\.\)$/, '')
         field[0,field.length-1].join(' ').chomp('.')
       end
     end
