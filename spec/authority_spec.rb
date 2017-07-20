@@ -101,6 +101,8 @@ RSpec.describe Authority, "#relationships (4XX/5xx)" do
     #airborne only has a 410. no 510s
     @airborne = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/airborne.json").read)
     @airborne.save!
+    @aidecuad = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/aid_ecuador.json").read)
+    @aidecuad.save!
   end
 
   it "predecessors extracts from $w/a and i" do
@@ -121,6 +123,10 @@ RSpec.describe Authority, "#relationships (4XX/5xx)" do
     expect(@airborne.parents_calculated).to include("United States. Coast Guard. Oceanographic Unit")
   end
 
+  it "calculates parents from 410#1s when United States." do
+    expect(@aidecuad.parents_calculated).to include("United States. Agency for International Development")
+  end
+
   it "combines explicit and implicitly calculated parents into one" do
     expect(@uscg.parents.count).to eq(5)
     expect(@uscg.parents).to include("United States. Department of the Treasury")
@@ -129,6 +135,9 @@ RSpec.describe Authority, "#relationships (4XX/5xx)" do
 
   it "collects current and former parents" do
     expect(@army.parents).to include("United States. Army. Chemical Warfare Service")
+    usaiir = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/usaiir.json").read)
+    expect(usaiir.parents_calculated).to eq([])
+    expect(usaiir.parents).to include("United States. Army")
   end
 
   it "collects children from others calling it a parent" do
@@ -141,6 +150,13 @@ RSpec.describe Authority, "#relationships (4XX/5xx)" do
   it "saves the relations fields" do
     auth = Authority.find_by({name:"United States. Coast Guard"})
     expect(auth.superiors).to include("United States. Department of Transportation")
+  end
+
+  it "uses the 110 if no 410s or 510s" do
+    cyf = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/cyf.json").read)
+    cyf.parents
+    PP.pp cyf
+    expect(cyf.parents).to include("United States. Administration for Children, Youth, and Families")
   end
 
   it "successors extracts from $w/b and i" do
@@ -162,6 +178,11 @@ RSpec.describe Authority, "#relationships (4XX/5xx)" do
     expect(jpl.name).to eq('Jet Propulsion Laboratory (U.S.)')
     expect(jpl.parents).to include('United States. National Aeronautics and Space Administration')
 
+  end
+
+  it "doesn't create blank fields" do
+    sldn = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/sldn.json").read)
+    expect(sldn.parentOrganization).to be_nil
   end
 
   after(:all) do

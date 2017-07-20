@@ -51,10 +51,6 @@ module Nauth
           self.label = self.extracted['name'].pop
           self.sameAs = @@loc_uri+self.extracted['sameAs'][0].gsub(/ /,'')
         elsif self.extracted['corp_name']
-          # we used tab separators in the traject config, but very
-          # occasionally there is a tab in the string. Replace tabs in the 
-          # string with ' ' if they do not follow a '.'
-          self.extracted['corp_name'] = self.extracted['corp_name'][0].gsub(/([^\.])\t/, '\1 ').split("\t")
           self.name = self.extracted['corp_name'].join(' ').chomp('.')
           self.label = self.extracted['corp_name'].last
           self.sameAs = @@loc_uri+self.extracted['sameAs'][0].gsub(/ /,'')
@@ -107,7 +103,16 @@ module Nauth
     end
 
     def extracted
-      @extracted ||= @@extractor.map_record(self.marc_record)
+      if !@extracted
+        @extracted = @@extractor.map_record(self.marc_record)
+        # we used tab separators in the traject config, but very
+        # occasionally there is a tab in the string. Replace tabs in the 
+        # string with ' ' if they do not follow a '.'
+        if @extracted['corp_name']
+          @extracted['corp_name'] = @extracted['corp_name'][0].gsub(/([^\.])\t/, '\1 ').split("\t")
+        end
+      end
+      @extracted
     end
 
     def marc_record
@@ -116,7 +121,7 @@ module Nauth
 
   # computed from the 110 itself
     def parentOrganization
-      if self.extracted['corp_name'].count > 0
+      if self.extracted['corp_name'].count > 1
         self['parentOrganization'] ||= self.extracted['corp_name'][0,self.extracted['corp_name'].length-1].join(' ').chomp('.')
       end
       self['parentOrganization'] 
@@ -127,7 +132,9 @@ module Nauth
     # field should be array of subfields
     def parent_from_tracings field
       #kill extraneous junk then match
-      if field.last == self.label.sub(/ \(U\.S\.\)$/, '')
+      if field.last == self.label.sub(/ \(U\.S\.\)$/, '') and field.count > 1
+        field[0,field.length-1].join(' ').chomp('.')
+      elsif field.first == 'United States.' and field.count > 2
         field[0,field.length-1].join(' ').chomp('.')
       end
     end
@@ -228,7 +235,7 @@ module Nauth
             @tracings[:employers] << this_record.chomp('.')
           else
             @tracings[:alternate_names] << this_record.chomp('.')
-            if f.tag == "410"
+            if f.tag == "410" and f.indicator1 == '1'
               p = self.parent_from_tracings pieces
               if !p.nil?
                 (@tracings[:parents_calculated] << p).uniq!
