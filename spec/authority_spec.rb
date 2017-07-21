@@ -155,7 +155,6 @@ RSpec.describe Authority, "#relationships (4XX/5xx)" do
   it "uses the 110 if no 410s or 510s" do
     cyf = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/cyf.json").read)
     cyf.parents
-    PP.pp cyf
     expect(cyf.parents).to include("United States. Administration for Children, Youth, and Families")
   end
 

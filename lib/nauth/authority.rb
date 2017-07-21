@@ -6,6 +6,7 @@ require 'traject'
 module Nauth
   class Authority 
     include Mongoid::Document
+    include Mongoid::Attributes::Dynamic
     field :name, type: String
     field :parents, type: Array, default: []
     field :parentOrganization, type: String #computed from 110
@@ -91,10 +92,10 @@ module Nauth
       if self['parents'].count == 0 
         po = self.parentOrganization
         if po
-          self['parents'] << po
+          self['parents'] = [po]
         end
       end
-      self['parents']
+      self['parents'] 
     end
 
     def children
@@ -260,5 +261,7 @@ module Nauth
     alias_method :superiors, :tracings
     alias_method :alternate_names, :tracings
     alias_method :employers, :tracings
+
   end
+
 end
