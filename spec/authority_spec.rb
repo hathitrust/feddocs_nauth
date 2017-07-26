@@ -194,6 +194,9 @@ RSpec.describe Authority, "#search" do
     rec = open(File.dirname(__FILE__)+"/data/with_410.json").read
     @rec = Authority.new(:marc=>rec)
     @rec.save!
+
+    @nep = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/nepal.json").read)
+    @nep.save!
   end
 
   it "finds by name" do
@@ -207,6 +210,17 @@ RSpec.describe Authority, "#search" do
     alternate_name = 'Central African Republic. Haut Commissariat à la recherche'
     auth = Authority.search alternate_name
     expect(auth.sameAs).to eq('https://lccn.loc.gov/n90645849')
+  end
+
+  it "finds by predecessor and successor" do
+    #Nepal. Department of Publicity and Broadcasting"
+    puts @nep.predecessors
+    auth = Authority.search @nep.predecessors[0]
+    expect(auth.sameAs).to eq('https://lccn.loc.gov/n50005233')
+    puts @nep.successors
+    #Nepal. Ministry of Publicity and Broadcasting
+    auth = Authority.search @nep.successors[0]
+    expect(auth.sameAs).to eq('https://lccn.loc.gov/n50005233')
   end
 
   after(:all) do

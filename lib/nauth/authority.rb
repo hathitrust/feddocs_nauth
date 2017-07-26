@@ -202,6 +202,12 @@ module Nauth
       if auth.nil?
         auth = Authority.where(alternate_names:name.chomp('.')).limit(1).first
       end
+      if auth.nil?
+        auth = Authority.where(predecessors:name.chomp('.')).limit(1).first
+      end
+      if auth.nil?
+        auth = Authority.where(successors:name.chomp('.')).limit(1).first
+      end
       auth
     end
 
