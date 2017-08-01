@@ -242,7 +242,7 @@ module Nauth
             @tracings[:employers] << this_record.chomp('.')
           else
             @tracings[:alternate_names] << this_record.chomp('.')
-            if f.tag == "410" and f.indicator1 == '1'
+            if f.tag == "410" #and f.indicator1 == '1'
               p = self.parent_from_tracings pieces
               if !p.nil?
                 (@tracings[:parents_calculated] << p).uniq!

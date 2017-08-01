@@ -103,6 +103,8 @@ RSpec.describe Authority, "#relationships (4XX/5xx)" do
     @airborne.save!
     @aidecuad = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/aid_ecuador.json").read)
     @aidecuad.save!
+    @reno = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/410indicator2.json").read)
+    @reno.save!
   end
 
   it "predecessors extracts from $w/a and i" do
@@ -182,6 +184,10 @@ RSpec.describe Authority, "#relationships (4XX/5xx)" do
   it "doesn't create blank fields" do
     sldn = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/sldn.json").read)
     expect(sldn.parentOrganization).to be_nil
+  end
+
+  it "doesn't care about 410 indicators for 'parent_from_tracings'" do
+    expect(@reno.parents).to include("National Capital Regional Planning Council (U.S.)")
   end
 
   after(:all) do
