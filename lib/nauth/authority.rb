@@ -136,7 +136,10 @@ module Nauth
       if field.last == self.label.sub(/ \(U\.S\.\)$/, '') and field.count > 1
         field[0,field.length-1].join(' ').chomp('.')
       elsif field.first == 'United States.' and field.count > 2
-        field[0,field.length-1].join(' ').chomp('.')
+        lindex = (field.index(self.label) ||
+                  field.index(self.label+'.') ||
+                  (field.length - 1) )
+        field[0,lindex].join(' ').chomp('.')
       end
     end
 

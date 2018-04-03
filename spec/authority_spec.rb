@@ -195,6 +195,46 @@ RSpec.describe Authority, "#relationships (4XX/5xx)" do
   end
 end
 
+RSpec.describe Authority, '#parent_from_tracings' do
+  before(:all) do
+    @a = Authority.new
+    @a.label = 'Department of State'
+  end
+
+  it 'gives nil if nothing matches' do
+    expect(@a.parent_from_tracings ['United States.',
+                                    'Departamento de Estado']).to be_nil
+  end
+
+  it 'gives single parent in simple heirarchy' do 
+    expect(@a.parent_from_tracings ['United States.',
+                                    'Department of State']).to \
+      eq('United States')
+  end
+
+  it 'gives parent heirarchy if tail matches' do
+    expect(@a.parent_from_tracings ['United States.',
+                                    'Some Intermediary.',
+                                    'Department of State']).to \
+      eq('United States. Some Intermediary')
+  end
+
+  it 'gives parent heirarchy if label matches intermediary' do
+    expect(@a.parent_from_tracings ['United States.',
+                                    'Department of State.',
+                                    'Office of the Secretary']).to \
+      eq('United States')
+  end
+
+  it 'gives (n-1) if label not found in field' do
+    @a.label = 'AID Mission in Ecuador'
+    expect(@a.parent_from_tracings ['United States.',
+                                    'Agency for International Development.',
+                                    'Mission in Ecuador']).to \
+      eq('United States. Agency for International Development')
+  end
+end
+
 RSpec.describe Authority, "#search" do
   before(:all) do
     rec = open(File.dirname(__FILE__)+"/data/with_410.json").read
