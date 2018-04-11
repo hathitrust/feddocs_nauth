@@ -27,9 +27,9 @@ settings do
 end
 
 # name
-to_field "subject_heading", extract_marc("100vxyz:110vxyz")
-to_field "corp_name", extract_marc("110abntd", :separator => "\t")
-to_field "title", extract_marc("110t:100t")
+to_field "subject_heading", extract_marc("100vxyz:110vxyz:151vxyz")
+to_field "corp_name", extract_marc("110abntd:151", :separator => "\t")
+to_field "title", extract_marc("110kt:100kt:151k")
 to_field "name", extract_marc("100abcd")
 
 # alternateName

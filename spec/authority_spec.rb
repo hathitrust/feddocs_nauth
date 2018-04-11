@@ -41,6 +41,12 @@ RSpec.describe Authority, "#new" do
     expect(c).to eq(1)
   end
 
+  it "ensures uniqueness of sameAs" do
+    dupe_lccn = 'https://lccn.loc.gov/n85323529'
+    dupe_rec = Authority.create(sameAs: dupe_lccn)
+    expect(dupe_rec.valid?).to be_falsey
+  end
+
   it "extracts a person authority record" do
     expect(@person.name).to eq('Pāṇḍeya, Gaṅgāprasāda')
     expect(@person.alternate_names).to include('Gaṅgāprasāda Pāṇḍeya')
@@ -56,6 +62,23 @@ RSpec.describe Authority, "#new" do
   it "saves the marc" do
     per = Authority.find_by(name:'Pāṇḍeya, Gaṅgāprasāda')
     expect(per.marc).to be_truthy
+  end
+
+  it "handles Geographic names" do
+    us_geo_rec = open(File.dirname(__FILE__) + "/data/us_geo_151.json").read
+    usa = Authority.new(marc: us_geo_rec)
+    expect(usa.name).to eq('United States')
+    expect(usa.label).to eq('United States')
+    expect(usa.sameAs).to eq('https://lccn.loc.gov/n78095330')
+    expect(usa.alternate_names).to include('Verenigde Staten')
+  end
+
+  it "not fooled by Geographic Subject Headings" do
+    us_geo_sh_rec = open(File.dirname(__FILE__) +
+                         "/data/us_geo_151sh.json").read
+    usa = Authority.new
+    expect{ usa.marc = us_geo_sh_rec }.to \
+      raise_error(RuntimeError, "subject heading, not a person or persons")
   end
 
   after(:all) do

@@ -30,6 +30,7 @@ module Nauth
     field :marc
 
     validates_uniqueness_of :name
+    validates_uniqueness_of :sameAs
 
     @@extractor = Traject::Indexer.new
     @@extractor.load_config_file(__dir__+'/../../config/traject_config.rb')
@@ -224,7 +225,7 @@ module Nauth
                      employers:[],
                      alternate_names:[],
                      parents_calculated:[]}
-        self.marc_record.each_by_tag(['400','410','500','510']) do | f |
+        self.marc_record.each_by_tag(['400','410','451','500','510']) do | f |
           codes = ['a','b','c','n','t','d']
           pieces = f.find_all {|sub| codes.include? sub.code}.collect{|sub|sub.value}
           this_record = pieces.join(' ')
