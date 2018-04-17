@@ -201,12 +201,15 @@ RSpec.describe Authority, "#relationships (4XX/5xx)" do
     jpl = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/jpl.json").read)
     expect(jpl.name).to eq('Jet Propulsion Laboratory (U.S.)')
     expect(jpl.parents).to include('United States. National Aeronautics and Space Administration')
-
   end
 
   it "doesn't create blank fields" do
     sldn = Authority.new(:marc=>open(File.dirname(__FILE__)+"/data/sldn.json").read)
     expect(sldn.parentOrganization).to be_nil
+
+    ss = Authority.new(:marc=>open(File.dirname(__FILE__) +
+                                   "/data/empty_parent_field.json").read)
+    expect(ss.parents).to eq(["United States. Selective Service System"])
   end
 
   it "doesn't care about 410 indicators for 'parent_from_tracings'" do
