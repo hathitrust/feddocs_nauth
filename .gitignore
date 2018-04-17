@@ -13,6 +13,12 @@
 /data/
 *.tsv
 
+*tmp
+
+Gemfile.lock
+.ruby-version
+nohup*
+
 # Used by dotenv library to load environment variables.
 .env
 
