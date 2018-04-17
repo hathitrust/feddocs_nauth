@@ -1,10 +1,11 @@
+# frozen_string_literal: true
+
 require 'pp'
 
 # A sample traject configration, save as say `traject_config.rb`, then
 # run `traject -c traject_config.rb marc_file.marc` to index to
 # solr specified in config file, according to rules specified in
 # config file
-
 
 # To have access to various built-in logic
 # for pulling things out of MARC21, like `marc_languages`
@@ -21,25 +22,25 @@ extend Traject::Macros::MarcFormats
 # files however you like, you can call traject with as many
 # config files as you like, `traject -c one.rb -c two.rb -c etc.rb`
 settings do
-  #provide "solr.url", "http://solr-sdr-usfeddocs-dev:9032/usfeddocs/collection1"
-  provide "reader_class_name", "Traject::NDJReader"
-  provide "marc_source.type", "json"
+  # provide "solr.url", "http://solr-sdr-usfeddocs-dev:9032/usfeddocs/collection1"
+  provide 'reader_class_name', 'Traject::NDJReader'
+  provide 'marc_source.type', 'json'
 end
 
 # name
-to_field "subject_heading", extract_marc("100vxyz:110vxyz:151vxyz")
-to_field "corp_name", extract_marc("110abntd:151", :separator => "\t")
-to_field "title", extract_marc("110kt:100kt:151k")
-to_field "name", extract_marc("100abcd")
+to_field 'subject_heading', extract_marc('100vxyz:110vxyz:151vxyz')
+to_field 'corp_name', extract_marc('110abntd:151', separator: "\t")
+to_field 'title', extract_marc('110kt:100kt:151k')
+to_field 'name', extract_marc('100abcd')
 
 # alternateName
-to_field "alternateName",          extract_marc("400abcd:500abcd")
+to_field 'alternateName', extract_marc('400abcd:500abcd')
 
 # sameAs
-to_field "sameAs", extract_marc("010a", default:[])
+to_field 'sameAs', extract_marc('010a', default: [])
 
-#046 coded dates
-to_field "start_period", extract_marc("046s")
-to_field "end_period", extract_marc("046t")
-to_field "establishment_date", extract_marc("046q")
-to_field "termination_date", extract_marc("046r")
+# 046 coded dates
+to_field 'start_period', extract_marc('046s')
+to_field 'end_period', extract_marc('046t')
+to_field 'establishment_date', extract_marc('046q')
+to_field 'termination_date', extract_marc('046r')

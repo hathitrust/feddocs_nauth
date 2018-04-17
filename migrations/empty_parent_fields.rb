@@ -1,14 +1,16 @@
+# frozen_string_literal: true
+
 require_relative '../lib/nauth'
 require 'dotenv'
 require 'pp'
 Dotenv.load
-Mongoid.load!("config/mongoid.yml", :production)
+Mongoid.load!('config/mongoid.yml', :production)
 Authority = Nauth::Authority
 
 count = 0
-Authority.where(parents:"").no_timeout.each do |auth|
+Authority.where(parents: '').no_timeout.each do |auth|
   if auth.parents.include? ''
-    puts "fail"
+    puts 'fail'
     PP.pp auth.marc
     exit
   end

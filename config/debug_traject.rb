@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'pp'
 require 'traject/json_writer'
 
@@ -5,7 +7,6 @@ require 'traject/json_writer'
 # run `traject -c traject_config.rb marc_file.marc` to index to
 # solr specified in config file, according to rules specified in
 # config file
-
 
 # To have access to various built-in logic
 # for pulling things out of MARC21, like `marc_languages`
@@ -22,12 +23,11 @@ extend Traject::Macros::MarcFormats
 # files however you like, you can call traject with as many
 # config files as you like, `traject -c one.rb -c two.rb -c etc.rb`
 settings do
-  
-  provide "writer_class_name", "Traject::JsonWriter"
-  provide "output_file", "out.json"
-  provide "reader_class_name", "Traject::NDJReader"
-  provide "marc_source.type", "json"
+  provide 'writer_class_name', 'Traject::JsonWriter'
+  provide 'output_file', 'out.json'
+  provide 'reader_class_name', 'Traject::NDJReader'
+  provide 'marc_source.type', 'json'
 end
 
-to_field "fiveteni", extract_marc("410i:510i")
-to_field "fivetenw", extract_marc("410i:510w")
+to_field 'fiveteni', extract_marc('410i:510i')
+to_field 'fivetenw', extract_marc('410i:510w')

@@ -1,13 +1,15 @@
+# frozen_string_literal: true
+
 source 'https://rubygems.org'
 
 gem 'amatch'
-gem 'multi_json'
-gem 'rspec'
+gem 'coveralls', require: false
 gem 'dotenv'
-gem 'rake'
+gem 'flog'
 gem 'marc'
 gem 'mongoid'
-gem 'coveralls', require: false
-gem 'flog'
+gem 'multi_json'
+gem 'rake'
+gem 'rspec'
 gem 'rubocop'
-gem 'traject', :git => 'https://github.com/traject/traject.git'
+gem 'traject', git: 'https://github.com/traject/traject.git'
