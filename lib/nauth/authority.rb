@@ -8,6 +8,7 @@ require 'traject'
 module Nauth
   class Authority
     include Mongoid::Document
+    store_in client: "nauth"
     include Mongoid::Attributes::Dynamic
     field :name, type: String
     field :parents, type: Array, default: []
