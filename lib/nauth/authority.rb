@@ -35,7 +35,7 @@ module Nauth
     validates_uniqueness_of :name
     validates_uniqueness_of :sameAs
 
-    @@extractor = Traject::Indexer.new
+    @@extractor = Traject::Indexer::MarcIndexer.new
     @@extractor.load_config_file(__dir__ + '/../../config/traject_config.rb')
     @@loc_uri = 'https://lccn.loc.gov/'
 
