@@ -8,7 +8,7 @@ require 'traject'
 module Nauth
   class Authority
     include Mongoid::Document
-    store_in client: "nauth"
+    store_in client: 'nauth'
     include Mongoid::Attributes::Dynamic
     field :name, type: String
     field :parents, type: Array, default: []
@@ -52,11 +52,11 @@ module Nauth
       unless marc.nil?
         type
         if extracted['name']
-          self.name = extracted['name'].join(' ').chomp('.')
+          self.name = Authority.chomp_punctuation(extracted['name'].join(' '))
           self.label = extracted['name'].pop
           self.sameAs = @@loc_uri + extracted['sameAs'][0].delete(' ')
         elsif extracted['corp_name']
-          self.name = extracted['corp_name'].join(' ').chomp('.')
+          self.name = Authority.chomp_punctuation(extracted['corp_name'].join(' '))
           self.label = extracted['corp_name'].last
           self.sameAs = @@loc_uri + extracted['sameAs'][0].delete(' ')
           self.length = extracted['corp_name'].length
@@ -123,7 +123,7 @@ module Nauth
     # computed from the 110 itself
     def parentOrganization
       if extracted['corp_name'].count > 1
-        self['parentOrganization'] ||= extracted['corp_name'][0, extracted['corp_name'].length - 1].join(' ').chomp('.')
+        self['parentOrganization'] ||= Authority.chomp_punctuation(extracted['corp_name'][0, extracted['corp_name'].length - 1].join(' '))
       end
       self['parentOrganization']
     end
@@ -135,12 +135,12 @@ module Nauth
     def parent_from_tracings(field)
       # kill extraneous junk then match
       if (field.last == label.sub(/ \(U\.S\.\)$/, '')) && (field.count > 1)
-        field[0, field.length - 1].join(' ').chomp('.')
+        Authority.chomp_punctuation(field[0, field.length - 1].join(' '))
       elsif (field.first == 'United States.') && (field.count > 2)
         lindex = (field.index(label) ||
                   field.index(label + '.') ||
                   (field.length - 1))
-        field[0, lindex].join(' ').chomp('.')
+        Authority.chomp_punctuation(field[0, lindex].join(' '))
       end
     end
 
@@ -157,6 +157,7 @@ module Nauth
       raise 'subject heading, not a person or persons' if extracted['subject_heading'] ||
                                                           extracted['sameAs'][0] =~ /^s/
       raise 'title heading, not a person or persons' if extracted['title']
+
       if extracted['corp_name']
         self['type'] = 'Organization'
       elsif extracted['name']
@@ -198,6 +199,7 @@ module Nauth
               nil
             end
         next if s.nil?
+
         # will recursively call pub_count on subs
         self['pub_count'] += s.pub_count
         s.save
@@ -209,18 +211,18 @@ module Nauth
     def self.search(name)
       # prefer names
       auth = begin
-               Authority.find_by(name: name.chomp('.'))
+               Authority.find_by(name: chomp_punctuation(name))
              rescue StandardError
                nil
              end
       if auth.nil?
-        auth = Authority.where(alternate_names: name.chomp('.')).limit(1).first
+        auth = Authority.where(alternate_names: chomp_punctuation(name)).limit(1).first
       end
       if auth.nil?
-        auth = Authority.where(predecessors: name.chomp('.')).limit(1).first
+        auth = Authority.where(predecessors: chomp_punctuation(name)).limit(1).first
       end
       if auth.nil?
-        auth = Authority.where(successors: name.chomp('.')).limit(1).first
+        auth = Authority.where(successors: chomp_punctuation(name)).limit(1).first
       end
       auth
     end
@@ -238,29 +240,29 @@ module Nauth
         marc_record.each_by_tag(%w[400 410 451 500 510]) do |f|
           codes = %w[a b c n t d]
           pieces = f.find_all { |sub| codes.include? sub.code }.collect(&:value)
-          this_record = pieces.join(' ')
+          this_record = Authority.chomp_punctuation(pieces.join(' '))
           if /h..rarc.*al superior/i.match?(f['i']) ||
              /^t/.match?(f['w'])
-            @tracings[:superiors] << this_record.chomp('.')
+            @tracings[:superiors] << this_record
           elsif /h..rarc.+al subordinate/u.match?(f['i'])
-            @tracings[:subordinates] << this_record.chomp('.')
+            @tracings[:subordinates] << this_record
           elsif /suc*es*or/i.match?(f['i']) ||
                 /product of merger/i.match?(f['i']) ||
                 /product of split/i.match?(f['i']) ||
                 /succeeded by/i.match?(f['i']) ||
                 /^b/.match?(f['w'])
-            @tracings[:successors] << this_record.chomp('.')
+            @tracings[:successors] << this_record
           elsif /predecessor/i.match?(f['i']) ||
                 /preceded by/i.match?(f['i']) ||
                 /mergee/i.match?(f['i']) ||
                 /component of merger/i.match?(f['i']) ||
                 /absorbed corporate body/i.match?(f['i']) ||
                 /^a/.match?(f['w'])
-            @tracings[:predecessors] << this_record.chomp('.')
+            @tracings[:predecessors] << this_record
           elsif /employer/i.match?(f['i'])
-            @tracings[:employers] << this_record.chomp('.')
+            @tracings[:employers] << this_record
           else
-            @tracings[:alternate_names] << this_record.chomp('.')
+            @tracings[:alternate_names] << this_record
             if f.tag == '410' # and f.indicator1 == '1'
               p = parent_from_tracings pieces
               (@tracings[:parents_calculated] << p).uniq! unless p.nil?
@@ -284,5 +286,11 @@ module Nauth
     alias superiors tracings
     alias alternate_names tracings
     alias employers tracings
+
+    private
+
+    def self.chomp_punctuation(name)
+      name.gsub(/[\.,]*$/, '')
+    end
   end
 end

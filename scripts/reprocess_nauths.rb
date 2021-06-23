@@ -8,6 +8,14 @@ Dotenv.load
 Mongoid.load!('config/mongoid.yml', :production)
 Authority = Nauth::Authority
 count = 0
+
+Authority.where(marc: {"$exists": 1}).no_timeout.each do |auth|
+  auth.marc = auth.marc
+  auth.save
+  count += 1
+end
+
+=begin
 parents_added = 0
 Authority.where(marc: { "$exists": 1 }, type: 'Organization', parents: []).no_timeout.each do |auth|
   count += 1
@@ -28,5 +36,7 @@ Authority.where(marc: { "$exists": 1 }, type: 'Organization', parents: []).no_ti
     exit
   end
 end
+=end
+
 puts "number processed: #{count}"
-puts "number with a new parent: #{parents_added}"
+#puts "number with a new parent: #{parents_added}"

@@ -27,7 +27,7 @@ module Nauth
 end
 
 if $PROGRAM_NAME == __FILE__
-  fin = open(ARGV.shift)
+  fin = File.open(ARGV.shift)
   m = Nauth.marc_to_hash fin
   c = 0
   fout = MARC::Writer.new('fifty_marc_records.mrc')

@@ -8,7 +8,7 @@ Mongo::Logger.logger.level = ::Logger::FATAL
 Authority = Nauth::Authority
 
 def get_child(child)
-  unless @auths_seen.keys.include? child
+  unless @auths_seen.key?(child)
     @auths_seen[child] = 1
     Authority.where(name: child).each do |c|
       puts [c.sameAs, child, c['parents'].join(', ')].join("\t")

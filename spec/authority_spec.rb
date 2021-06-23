@@ -269,6 +269,9 @@ RSpec.describe Authority, '#search' do
 
     @nep = Authority.new(marc: File.open(File.dirname(__FILE__) + '/data/nepal.json').read)
     @nep.save!
+
+    @wb = Authority.new(marc: File.open(File.dirname(__FILE__) + '/data/weather_bureau.json').read)
+    @wb.save!
   end
 
   it 'finds by name' do
@@ -293,6 +296,13 @@ RSpec.describe Authority, '#search' do
     # Nepal. Ministry of Publicity and Broadcasting
     auth = Authority.search @nep.successors[0]
     expect(auth.sameAs).to eq('https://lccn.loc.gov/n50005233')
+  end
+
+  it 'removes trailing commas from name searches' do
+    name = 'United States. Weather Bureau,'
+    auth = Authority.search name
+    expect(auth.sameAs).to eq('https://lccn.loc.gov/n79049341')
+    expect(auth.name).to eq('United States. Weather Bureau')
   end
 
   after(:all) do

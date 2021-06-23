@@ -7,7 +7,6 @@ Mongoid.load!('config/mongoid.yml', :production)
 Mongo::Logger.logger.level = ::Logger::FATAL
 Authority = Nauth::Authority
 
-
 same_as = ARGV.shift
 Authority.where(sameAs: same_as).each do |a|
   PP.pp a.marc

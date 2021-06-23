@@ -10,7 +10,7 @@ skipped = 0
 line_count = 0
 
 ARGV.each do |file|
-  open(file).each do |line|
+  File.open(file).each do |line|
     line_count += 1
     if line.nil?
       puts 'wtf'
@@ -50,5 +50,5 @@ ARGV.each do |file|
   end
 end
 
-puts "count: #{count}"
+puts "count: #{line_count}"
 puts "skipped: #{skipped}"
