@@ -1,3 +1,6 @@
+> [!IMPORTANT]  
+> As of January 2026, the registry and supporting code for the HathiTrust federal documents repository is defunct. This code is archived and is not maintained.
+
 Name Authorities
 ----------------
 A gem for processing and querying LC Name Authorities. Records are processed into documents reflecting parent, child, predecessor, successor relationships.
